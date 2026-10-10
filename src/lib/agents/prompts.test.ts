@@ -66,6 +66,14 @@ describe("prompts", () => {
     expect(p).toContain("exactly 7 days");
   });
 
+  it("growth prompt forbids invented products and unit-price changes", () => {
+    const p = growthPrompt(ctx);
+    expect(p).toContain("Use only products, pack sizes, bundles, and flavours the user actually stated");
+    expect(p).toContain("exactly one product named after inputs.businessType at exactly inputs.sellingPriceSen");
+    expect(p).toContain("Never invent pack sizes, multi-packs, or discounts that change the unit price");
+    expect(p).toContain("promotionalOffer must not contradict the unit price");
+  });
+
   it("operations prompt mentions the capacity", () => {
     expect(operationsPrompt(ctx)).toContain("37");
   });
