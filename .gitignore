@@ -50,3 +50,11 @@ next-env.d.ts
 
 # codegraph index
 /.codegraph/
+
+# WorkBuddy local state and stray skill clones
+/.workbuddy-ai/
+/codegraph/
+/ponytail/
+/superpowers/
+CODEBUDDY.local.md
+.codebuddy/settings.local.json

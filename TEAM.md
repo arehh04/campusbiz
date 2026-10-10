@@ -15,18 +15,24 @@ Merge into `develop` at least every few hours. Merge `develop` into `main` only 
 `src/lib/schemas/sample.ts` is a `[SAMPLE]` plan so the UI can be built before real data exists. It must always be labelled in the UI.
 Money is integer sen. Every shown value carries a provenance label (`[USER_INPUT] [CALCULATED] [ESTIMATED] [SIMULATED] [GENERATED] [VERIFIED] [UNVERIFIED]`).
 
-## Who writes the code (AI model roles inside CodeBuddy)
+## Tooling rule: everything happens on Tencent WorkBuddy
 
-Models run headlessly with `codebuddy -p --model <id>`. Claude Code is the orchestrator and final reviewer.
+The challenge requires the solution, the presentation slides and the project documentation to be built **exclusively on Tencent WorkBuddy**.
+From now on all code, slides and docs are produced in WorkBuddy sessions. Claude Code is no longer used. The ready-made WorkBuddy setup is in `CODEBUDDY.md` (project memory) and `.codebuddy/agents/` (sub-agents); kickoff prompts are in `docs/WORKBUDDY.md`.
+Honest note for the submission: the first foundation (stack init, adapter, finance engine, pipeline, orders backend, this plan) was built before this rule was noticed, using Claude Code driving WorkBuddy's models through the CodeBuddy CLI. Say so in the documentation and ask the organisers whether that is acceptable; do not hide it.
 
-| Work | Model ID | Rule |
+## Who writes the code (AI model roles inside WorkBuddy)
+
+The main WorkBuddy session orchestrates. Sub-agents are defined in `.codebuddy/agents/`.
+
+| Work | Sub-agent / model | Rule |
 |---|---|---|
-| Backend implementation (Person A tasks) | the benchmark winner of `hy4-preview` vs `glm-5.3` (section 8) | Works in its own git worktree and branch. Never merges itself. |
-| Frontend implementation (Person B tasks) | `kimi-k3` | Same: own worktree and branch, never merges itself. |
-| Code review | `gpt-5.6-sol` | **Read-only**: tools limited to `Read, Glob, Grep`. Must not edit or write files. Returns findings only. |
-| Orchestration, integration, final review | Claude Code | Verifies every claim by running tests; a model's report is never trusted on its own. |
+| Backend implementation (Person A tasks) | `backend-dev`, model `hy4-preview` (benchmark winner over `glm-5.3`, section 8; `glm-5.3` is the fallback) | Works in its own git worktree and branch. Never commits or merges. |
+| Frontend implementation (Person B tasks) | `frontend-dev`, model `kimi-k3` | Same: own worktree and branch, never commits or merges. |
+| Code review | `code-reviewer`, model `gpt-5.6-sol` | **Read-only**: tools limited to `Read, Grep, Glob`. Must not edit or write files. Returns findings only. |
+| Orchestration, integration, slides, documentation | the main WorkBuddy session | Runs the checks itself; a model's report is never trusted on its own. |
 
-Rules for every delegated job: one task per worktree, explicit file allow-list, no git commands for the model, the human or Claude commits.
+Rules for every delegated job: one task per worktree, explicit file allow-list, no git commands for the sub-agent, the human or the main session commits.
 A job is accepted only after `npm test`, `npm run typecheck` and `npx eslint src` pass in the integrated branch.
 
 ## 1. Interfaces (the seam between A and B)
@@ -53,7 +59,7 @@ SQLite plans and agent runs (`src/lib/db`); orchestrated analysis (goal -> finan
 
 ## 3. Person A: agent pipeline and backend
 
-Implemented by the backend model (section "Who writes the code"), reviewed by `gpt-5.6-sol`, integrated by Claude Code.
+Implemented by the `backend-dev` sub-agent (`hy4-preview`), reviewed by `code-reviewer` (`gpt-5.6-sol`), integrated by the main WorkBuddy session.
 
 | # | Task | Acceptance |
 |---|---|---|
@@ -71,7 +77,7 @@ Implemented by the backend model (section "Who writes the code"), reviewed by `g
 
 ## 4. Person B: product and UI
 
-Implemented by `kimi-k3`, reviewed by `gpt-5.6-sol`, integrated by Claude Code. B works against `sample.ts` until A's endpoints land.
+Implemented by the `frontend-dev` sub-agent (`kimi-k3`), reviewed by `code-reviewer` (`gpt-5.6-sol`), integrated by the main WorkBuddy session. B works against `sample.ts` until A's endpoints land.
 
 | # | Task | Acceptance |
 |---|---|---|
@@ -92,12 +98,15 @@ Implemented by `kimi-k3`, reviewed by `gpt-5.6-sol`, integrated by Claude Code. 
 - S2 Weekly-style sync at each merge into `develop`: 10 minutes, list blockers.
 - S3 Final README, known limitations, and the final report required by `instruction.md` section 21.
 - S4 Demo video or script; decide who presents which part.
+- S5 **Presentation slides, made in WorkBuddy** (required by the challenge). Outline: problem, one-prompt-to-outcome journey, architecture (WorkBuddy orchestrator and specialists, deterministic finance, SQLite), live demo screenshots, truthfulness and validation, limits, what is next. Every claim on a slide must match something that actually ran.
+- S6 **Project documentation, written in WorkBuddy**: README, WorkBuddy setup and verified capabilities, known limitations, the disclosure note above, test results.
+- S7 Move the work into WorkBuddy: follow `docs/WORKBUDDY.md` section 1 and record evidence (screenshots of WorkBuddy sessions doing each task) for the submission.
 
 ## 6. Review protocol (gpt-5.6-sol, read-only)
 
-1. After a model finishes a task, Claude Code runs the tests itself.
+1. After a sub-agent finishes a task, the main session runs the tests itself.
 2. Review prompt is sent to `gpt-5.6-sol` with `--tools "Read,Glob,Grep"` only (no Edit, Write or Bash). The reviewer receives the task brief and the diff paths and must return: correctness bugs, security issues, missing tests, and anything that violates `instruction.md` section 2.4 (truthful execution). Findings only, ranked.
-3. Claude Code verifies each finding against the code before acting on it, then the implementing model (or Claude) fixes it.
+3. The main session verifies each finding against the code before acting on it, then the implementing sub-agent (or the main session) fixes it.
 4. Merge only after tests, typecheck and lint pass on the merged branch.
 
 ## 7. Demo scenario (acceptance for the whole project)
@@ -109,7 +118,7 @@ Steps: submit goal -> watch real WorkBuddy run status -> plan appears -> landing
 ## 8. Backend model benchmark (hy4-preview vs glm-5.3)
 
 Same task, same brief, same hidden acceptance suite (20 tests), five runs per model, each in its own worktree, all ten run at once.
-Task: the orders backend (A2). Scored by Claude Code running everything itself: hidden tests, typecheck, lint, wall time, size.
+Task: the orders backend (A2). Scored by the orchestrating session running everything itself: hidden tests, typecheck, lint, wall time, size.
 
 | | hy4-preview | glm-5.3 |
 |---|---|---|
