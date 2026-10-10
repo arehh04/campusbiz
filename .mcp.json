@@ -1,0 +1,1 @@
+{"mcpServers":{"campusbiz":{"type":"stdio","command":"node","args":["node_modules/tsx/dist/cli.mjs","src/mcp/server.ts"],"env":{"DATABASE_PATH":"./data/campusbiz.db"}}}}
