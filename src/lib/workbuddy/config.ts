@@ -37,7 +37,7 @@ export function checkConfiguration(): ConfigCheck {
         "or set WORKBUDDY_CLI_ENTRY to the bin/codebuddy path of that package.",
     };
   }
-  const timeoutMs = Number(process.env.WORKBUDDY_TIMEOUT_MS ?? 120000);
+  const timeoutMs = Number(process.env.WORKBUDDY_TIMEOUT_MS ?? 240000); // a growth-kit call measured ~110 s
   const workDir = path.join(os.tmpdir(), "campusbiz-workbuddy");
   fs.mkdirSync(workDir, { recursive: true });
   return {
@@ -45,7 +45,7 @@ export function checkConfiguration(): ConfigCheck {
     config: {
       command: process.execPath,
       baseArgs: [entry],
-      timeoutMs: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 120000,
+      timeoutMs: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 240000,
       workDir,
     },
   };

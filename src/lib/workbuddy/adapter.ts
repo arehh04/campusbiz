@@ -38,6 +38,27 @@ export function parseCliOutput(stdout: string): CliResultItem | null {
   return found ?? null;
 }
 
+/** The CLI sometimes wraps structured output as {"data": {...}}; unwrap only that exact shape. */
+export function unwrapData(v: unknown): unknown {
+  if (typeof v === "object" && v !== null && !Array.isArray(v)) {
+    const keys = Object.keys(v);
+    if (keys.length === 1 && keys[0] === "data") return (v as { data: unknown }).data;
+  }
+  return v;
+}
+
+/** Drop JSON Schema noise the CLI mishandles ($schema) or that only bloats the prompt (regex, huge bounds, formats). */
+export function cleanSchema(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(cleanSchema);
+  if (typeof node !== "object" || node === null) return node;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(node)) {
+    if (k === "$schema" || k === "pattern" || k === "format" || (k === "maximum" && v === Number.MAX_SAFE_INTEGER)) continue;
+    out[k] = cleanSchema(v);
+  }
+  return out;
+}
+
 function runCli(config: WorkBuddyConfig, args: string[]): Promise<{ stdout: string; stderr: string; timedOut: boolean }> {
   return new Promise((resolve, reject) => {
     const child = spawn(config.command, [...config.baseArgs, ...args], {
@@ -70,15 +91,13 @@ async function execute<T extends z.ZodType>(req: StructuredRequest<T>): Promise<
   if (!cfg.ok) return { status: "UNAVAILABLE", error: cfg.reason };
 
   const started = Date.now();
-  // The CLI mishandles the "$schema" meta key, so drop it.
-  const { $schema: _meta, ...schemaBody } = z.toJSONSchema(req.schema) as Record<string, unknown>;
-  void _meta;
-  const jsonSchema = JSON.stringify(schemaBody);
+  const jsonSchema = JSON.stringify(cleanSchema(z.toJSONSchema(req.schema)));
   const args = [
     "-p",
     req.prompt,
     "--system-prompt",
-    req.systemPrompt,
+    // --json-schema alone is not reliably obeyed for large schemas, so state the shape in the prompt too.
+    `${req.systemPrompt}\n\nReturn a JSON object with exactly the top-level keys and shape of this JSON Schema, with no wrapper object:\n${jsonSchema}`,
     "--json-schema",
     jsonSchema,
     // The CLI needs this tool to emit schema-validated output; no file or shell tools are enabled.
@@ -120,7 +139,7 @@ async function execute<T extends z.ZodType>(req: StructuredRequest<T>): Promise<
   if (item.is_error) {
     return { status: "FAILED", error: redact(item.result ?? "WorkBuddy reported an error."), externalSessionId: sessionId, durationMs };
   }
-  const checked = req.schema.safeParse(item.structured_output);
+  const checked = req.schema.safeParse(unwrapData(item.structured_output));
   if (!checked.success) {
     return {
       status: "FAILED",

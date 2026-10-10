@@ -1,0 +1,70 @@
+/** Idempotent DDL, run on every first open. Never store secrets or auth headers here. */
+export const SCHEMA_SQL: string[] = [
+  `CREATE TABLE IF NOT EXISTS businesses (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    business_type TEXT,
+    description TEXT,
+    currency TEXT NOT NULL DEFAULT 'MYR',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS business_plans (
+    id TEXT PRIMARY KEY,
+    business_id TEXT REFERENCES businesses(id),
+    goal_input TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'WORKBUDDY',
+    analysis_status TEXT NOT NULL DEFAULT 'QUEUED',
+    inputs_json TEXT,
+    assumptions_json TEXT,
+    missing_information_json TEXT,
+    finance_json TEXT,
+    feasibility_json TEXT,
+    demand_json TEXT,
+    growth_json TEXT,
+    operations_json TEXT,
+    next_actions_json TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS orders (
+    id TEXT PRIMARY KEY,
+    business_id TEXT REFERENCES businesses(id),
+    customer_name TEXT NOT NULL,
+    customer_contact TEXT,
+    product_name TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    unit_price_sen INTEGER NOT NULL,
+    subtotal_sen INTEGER NOT NULL,
+    fulfilment_option TEXT NOT NULL,
+    requested_datetime TEXT,
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    notes TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS artifacts (
+    id TEXT PRIMARY KEY,
+    business_id TEXT REFERENCES businesses(id),
+    plan_id TEXT REFERENCES business_plans(id),
+    artifact_type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT,
+    file_path TEXT,
+    generation_status TEXT NOT NULL,
+    provenance_json TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS agent_runs (
+    id TEXT PRIMARY KEY,
+    plan_id TEXT NOT NULL REFERENCES business_plans(id),
+    role TEXT NOT NULL,
+    provider TEXT NOT NULL DEFAULT 'workbuddy-cli',
+    execution_status TEXT NOT NULL,
+    external_session_id TEXT,
+    started_at TEXT,
+    completed_at TEXT,
+    duration_ms INTEGER,
+    error_summary TEXT,
+    UNIQUE (plan_id, role)
+  )`,
+];
