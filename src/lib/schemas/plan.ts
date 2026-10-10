@@ -65,7 +65,7 @@ export type GoalInterpretationOutput = z.infer<typeof GoalInterpretationOutput>;
 export const FinanceResult = z.object({
   provenance: z.literal("CALCULATED"),
   valid: z.boolean(), // false when unit contribution <= 0
-  unitContributionSen: z.number().int(),
+  unitContributionSen: z.number().int().nullable(), // null when price or variable cost is missing
   breakEvenUnits: z.number().int().nullable(),
   requiredMonthlyUnits: z.number().int().nullable(),
   requiredDailyUnits: z.number().int().nullable(),
