@@ -4,6 +4,7 @@ Hackathon rule: this project is built, presented and documented **exclusively on
 
 @AGENTS.md
 @TEAM.md
+@docs/STRATEGY.md
 
 ## What this is
 A Next.js 16 + TypeScript app that turns a student's business goal into a validated plan: WorkBuddy does the reasoning (orchestrator plus Demand, Growth, Operations specialists), the app does deterministic finance, SQLite stores plans/orders/agent runs. Full spec: `instruction.md`. Shared data contract: `src/lib/schemas/plan.ts` (change only with both teammates' agreement).

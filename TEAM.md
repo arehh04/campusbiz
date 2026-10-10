@@ -42,6 +42,7 @@ A job is accepted only after `npm test`, `npm run typecheck` and `npx eslint src
 | `POST /api/analyze` | A, DONE | 202 `{id,status,workbuddyConfigured}`; runs in background |
 | `GET /api/analysis/:id` | A, DONE | the `BusinessPlan`; 404 if unknown. Poll every ~3 s until `COMPLETED`, `FAILED` or `MANUAL_REQUIRED` |
 | `GET/POST /api/analysis/:id/manual` | A, DONE | prompt pack to run by hand in WorkBuddy; POST `{role,result}` validates and stores a pasted result |
+| `GET /api/analysis/:id/events` | A, A13 | real agent events for the trace panel (tool calls, durations); empty list when none happened |
 | `GET /api/health` | A, A3 | `{db, workbuddy:{configured, reason?}}` for setup banners |
 | `GET /api/analysis` | A, A5 | list recent plans (id, goal, status, feasibility, createdAt) |
 | `GET/POST /api/orders`, `PATCH /api/orders/:id` | A, A2 | POST needs `planId` plus `CreateOrderRequest`; 201 / 400 / 404 plan / 422 unknown product. GET `{orders,summary}`, `?status=`, `?format=csv`. PATCH `{status}` 200 / 400 / 404 / 409 |
@@ -74,6 +75,13 @@ Implemented by the `backend-dev` sub-agent (`hy4-preview`), reviewed by `code-re
 | A9 | Optional funding and compliance specialist (only after all else): checklist labelled `UNVERIFIED — REQUIRES CHECKING` | No invented programmes, deadlines or eligibility |
 | A10 | Hardening: minimal admin-token guard on order list and status updates, cap on catalogue price, per-role retry limits, timeouts, redaction audit, request size limits, rate limit on `/api/analyze` | A security review pass reports no open issues |
 | A11 | WorkBuddy section of README: verified capabilities and limits, manual fallback, demo script | A new machine can follow it |
+| A12 | **`campusbiz` MCP server** (stdio, `@modelcontextprotocol/sdk`) with tools `calculate_finance`, `evaluate_feasibility`, `get_plan`, `list_orders`, `order_summary`, plus project `.mcp.json` | A headless WorkBuddy run of the Finance agent calls `mcp__campusbiz__calculate_finance` and the result equals the engine's. All tools are read-only; no secrets exposed |
+| A13 | **Real agent trace**: adapter switches to `--output-format stream-json`, stores real events (tool calls, results, durations) in a new `agent_events` table, allows only the MCP tools each role needs; `GET /api/analysis/:id/events` | Trace shows only events that actually happened; a role with no tool call shows none |
+| A14 | **Critic agent with auto-repair**: after the specialists, a WorkBuddy critic checks them against each other and the calculator (price mismatch, units above capacity, invented products, unlabelled claims). Backend also runs the same checks deterministically. On findings, the offending specialist re-runs once with the findings | A deliberately wrong specialist output is caught and repaired; the repair is visible in the trace |
+| A15 | **Adaptive fix-it options**: when `AT_RISK` or `NOT_FEASIBLE`, an Advisor agent proposes 2 to 3 changes (price, capacity, cost); the calculator recomputes each, the model never does the maths; ranked by the calculator's result | Loss-making demo input yields options that, once applied through A7, change the verdict |
+| A16 | **Daily autopilot briefing**: an agent reads real orders through the MCP tools and drafts tomorrow's prep list and customer messages. Drafts only, never sent | Output respects capacity; confirmed orders and forecast are labelled differently |
+| A17 | **Real deliverable files**: the Growth and Operations agents write the launch kit and checklist as files in a per-plan workspace folder; the backend validates them before storing as artifacts (extends A4) | Files exist on disk and download; nothing is claimed that was not written |
+| A18 | **Evidence harness**: a script runs a fixed scenario set (profitable, loss-making, over capacity, missing data, prompt-injection text) end to end, records pass/fail and timings into `docs/EVIDENCE.md` | Numbers in the slides come from this file |
 
 ## 4. Person B: product and UI
 
@@ -91,6 +99,10 @@ Implemented by the `frontend-dev` sub-agent (`kimi-k3`), reviewed by `code-revie
 | B8 | Setup banners from `/api/health`: WorkBuddy not configured, not signed in, DB error, with the fix text | Matches A3's `reason` text |
 | B9 | Accessibility and responsive pass: focus order, labels, contrast, tap targets | Keyboard-only can place and update an order |
 | B10 | Demo rehearsal and polish: run section 7 end to end on desktop and a phone-sized viewport, fix rough edges | Zero dead buttons |
+| B11 | **Agent trace panel** from `GET /api/analysis/:id/events`: per role, real tool calls, durations, statuses, repairs | Shows nothing that is not in the events; no animation implying activity |
+| B12 | **Fix-it options UI** for A15: compare current plan with each option, apply one, see the recalculated verdict | Applying an option calls the recalculate endpoint and the screen matches the result |
+| B13 | **Daily briefing screen** for A16: prep list, order basis, draft messages with copy buttons and a "not sent" label | No button that claims to send anything |
+| B14 | **Impact panel**: measured numbers from `docs/EVIDENCE.md` and the live run (time to plan, scenarios caught) | Every figure traces to a recorded run; no invented stats |
 
 ## 5. Shared tasks (both)
 
@@ -100,6 +112,8 @@ Implemented by the `frontend-dev` sub-agent (`kimi-k3`), reviewed by `code-revie
 - S4 Demo video or script; decide who presents which part.
 - S5 **Presentation slides, made in WorkBuddy** (required by the challenge). Outline: problem, one-prompt-to-outcome journey, architecture (WorkBuddy orchestrator and specialists, deterministic finance, SQLite), live demo screenshots, truthfulness and validation, limits, what is next. Every claim on a slide must match something that actually ran.
 - S6 **Project documentation, written in WorkBuddy**: README, WorkBuddy setup and verified capabilities, known limitations, the disclosure note above, test results.
+- S8 **User validation**: run the product with 3 to 5 real student sellers, time their manual process vs ours, record their real numbers (with permission). Feeds the measurable-value claim in `docs/STRATEGY.md`.
+- S9 Pitch narrative from `docs/STRATEGY.md` sections 1, 4 and 5; the tool and skill setup is in `docs/WORKBUDDY-TOOLS.md`.
 - S7 Move the work into WorkBuddy: follow `docs/WORKBUDDY.md` section 1 and record evidence (screenshots of WorkBuddy sessions doing each task) for the submission.
 
 ## 6. Review protocol (gpt-5.6-sol, read-only)
