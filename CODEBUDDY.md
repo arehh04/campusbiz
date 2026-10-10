@@ -22,6 +22,7 @@ A Next.js 16 + TypeScript app that turns a student's business goal into a valida
 - The client never controls price or subtotal. Order status changes only along `ORDER_TRANSITIONS`.
 - Label provenance on shown values: `[USER_INPUT] [CALCULATED] [ESTIMATED] [SIMULATED] [GENERATED] [VERIFIED] [UNVERIFIED]`. `[SAMPLE]` for the demo plan in `src/lib/schemas/sample.ts`.
 - Never commit `.env`, never print keys. Do not publish, send or deploy anything without the user saying so.
+- Commit messages: plain subject and body only. Never add `Co-Authored-By:` or any session or tool attribution trailer.
 
 ## Who does what
 Person A: agent pipeline and backend (`TEAM.md` section 3). Person B: product and UI (section 4).
